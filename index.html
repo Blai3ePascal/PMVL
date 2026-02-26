@@ -37,15 +37,25 @@
             text-shadow: 0 4px 10px rgba(0,0,0,0.5); 
         }
 
-       .botones-inicio { 
+      .botones-inicio { 
             display: flex; 
             gap: 20px; 
         }
 
-       .btn-grande { 
+      .btn-grande { 
             font-size: 1.1rem; 
             padding: 15px 30px; 
             border-radius: 16px; 
+            cursor: pointer;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+      .btn-grande:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
         }
 
         #contenedor_pantalla { 
@@ -67,7 +77,7 @@
             transition: transform 0.2s ease-out; 
         }
 
-      .panel-flotante { 
+     .panel-flotante { 
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
@@ -86,7 +96,7 @@
             transition: all 0.4s ease; 
         }
 
-      .panel-flotante:hover { 
+     .panel-flotante:hover { 
             opacity: 1; 
             bottom: 35px;
         }
@@ -119,7 +129,7 @@
             display: none; 
         }
 
-      .v86-text { 
+     .v86-text { 
             white-space: pre; 
             font: 14px monospace; 
             line-height: 14px; 
