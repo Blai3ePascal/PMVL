@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Mi Máquina en Web</title>
+    
+    <script src="coi-serviceworker.js"></script>
+    
+    <script src="libv86.js"></script>
+    <script src="pako.min.js"></script>
+    
+    <style>
+        body { background: #222; color: white; font-family: sans-serif; text-align: center; margin: 0; }
+       .controles { background: #444; padding: 15px; margin-bottom: 20px; }
+        button { margin: 5px; padding: 8px 15px; cursor: pointer; }
+        #pantalla { background: black; transform-origin: top center; transition: transform 0.2s; }
+    </style>
+</head>
+<body>
+
+    <div class="controles">
+        <button onclick="acercar()">Acercar</button>
+        <button onclick="alejar()">Alejar</button>
+        <button onclick="captura()">Sacar Captura</button>
+        <button onclick="guardarEstado()">Guardar Máquina</button>
+        <button onclick="cargarEstado()">Cargar Máquina</button>
+        <button onclick="bajarArchivo()">Bajar Archivo desde Linux</button>
+        <label>
+            Subir Archivo a Linux: 
+            <input type="file" id="subir_archivo">
+        </label>
+    </div>
+
+    <div id="contenedor_pantalla">
+        <div style="white-space: pre; font: 14px monospace; line-height: 14px"></div>
+        <canvas id="pantalla"></canvas>
+    </div>
+
+    <script>
+        // 4. Iniciar la máquina virtual con TinyCore
+        var emulator = new V86({
+            wasm_path: "v86.wasm",
+            memory_size: 128 * 1024 * 1024, // 128 MB de RAM
+            vga_memory_size: 8 * 1024 * 1024, // 8 MB de Video
+            screen_container: document.getElementById("contenedor_pantalla"),
+            bios: { url: "seabios.bin" },
+            vga_bios: { url: "vgabios.bin" },
+            cdrom: { url: "TinyCore-11.0.iso" }, // La ISO de Linux
+            autostart: true,
+            filesystem: {} // Esto activa la carpeta compartida mágica para pasar archivos
+        });
+
+        // --- BOTONES DE ZOOM ---
+        let zoom = 1;
+        function acercar() { 
+            zoom += 0.2; 
+            document.getElementById('pantalla').style.transform = "scale(" + zoom + ")"; 
+        }
+        function alejar() { 
+            zoom -= 0.2; 
+            document.getElementById('pantalla').style.transform = "scale(" + zoom + ")"; 
+        }
+
+        // --- CAPTURA DE PANTALLA ---
+        function captura() {
+            let enlace = document.createElement('a');
+            enlace.download = 'captura-linux.png';
+            enlace.href = document.getElementById('pantalla').toDataURL("image/png");
+            enlace.click();
+        }
+
+        // --- PASAR ARCHIVOS (ANFITRIÓN -> LINUX) ---
+        document.getElementById("subir_archivo").onchange = function(e) {
+            let archivo = e.target.files;
+            if (!archivo) return;
+            let lector = new FileReader();
+            lector.onload = function(evento) {
+                let bytes = new Uint8Array(evento.target.result);
+                // Lo inyectamos en la carpeta /mnt/9p del Linux
+                emulator.create_file("/mnt/9p/" + archivo.name, bytes);
+                alert("¡Archivo subido! Búscalo dentro de la máquina en /mnt/9p/" + archivo.name);
+            };
+            lector.readAsArrayBuffer(archivo);
+        };
+
+        // --- PASAR ARCHIVOS (LINUX -> ANFITRIÓN) ---
+        async function bajarArchivo() {
+            let nombre = prompt("Escribe el nombre del archivo exacto que esté dentro de la carpeta /mnt/9p/ de tu máquina:");
+            if (!nombre) return;
+            try {
+                let datos = await emulator.read_file("/mnt/9p/" + nombre);
+                let blob = new Blob([datos]);
+                let enlace = document.createElement('a');
+                enlace.href = URL.createObjectURL(blob);
+                enlace.download = nombre;
+                enlace.click();
+            } catch(e) {
+                alert("Error: No se encontró el archivo. Asegúrate de que esté en /mnt/9p/");
+            }
+        }
+
+        // --- GUARDAR Y CARGAR EL ESTADO (En el navegador) ---
+        // Preparamos la base de datos interna (IndexedDB)
+        const dbPromise = new Promise((resolve) => {
+            let req = indexedDB.open("MaquinaDB", 1);
+            req.onupgradeneeded = (e) => e.target.result.createObjectStore("estados");
+            req.onsuccess = (e) => resolve(e.target.result);
+        });
+
+        async function guardarEstado() {
+            let db = await dbPromise;
+            emulator.save_state(async function(err, estadoCrudo) {
+                if (err) return alert("Error al guardar");
+                // Comprimimos la RAM para que quepa bien
+                let estadoComprimido = pako.deflate(new Uint8Array(estadoCrudo), { level: 6 });
+                let tx = db.transaction("estados", "readwrite");
+                tx.objectStore("estados").put(estadoComprimido, "mi_partida");
+                alert("¡Máquina guardada con éxito!");
+            });
+        }
+
+        async function cargarEstado() {
+            let db = await dbPromise;
+            let tx = db.transaction("estados", "readonly");
+            let peticion = tx.objectStore("estados").get("mi_partida");
+            peticion.onsuccess = async function() {
+                if (!peticion.result) return alert("No tienes ninguna máquina guardada aún.");
+                // Descomprimimos y restauramos
+                let estadoDescomprimido = pako.inflate(peticion.result).buffer;
+                await emulator.restore_state(estadoDescomprimido);
+                alert("¡Máquina cargada con éxito!");
+            };
+        }
+    </script>
+</body>
+</html>
