@@ -35,7 +35,7 @@
             transition: transform 0.2s ease-out; 
         }
 
-      .panel-flotante { 
+       .panel-flotante { 
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
@@ -54,7 +54,7 @@
             transition: all 0.4s ease; 
         }
 
-      .panel-flotante:hover { 
+       .panel-flotante:hover { 
             opacity: 1; 
             bottom: 35px;
         }
@@ -87,7 +87,7 @@
             display: none; 
         }
 
-      .v86-text { 
+       .v86-text { 
             white-space: pre; 
             font: 14px monospace; 
             line-height: 14px; 
@@ -151,8 +151,10 @@
             if (!archivos |
 
 | archivos.length === 0) return;
+            
             let archivo = archivos;
             let lector = new FileReader();
+            
             lector.onload = function(evento) {
                 let bytes = new Uint8Array(evento.target.result);
                 emulator.create_file("/mnt/9p/" + archivo.name, bytes);
