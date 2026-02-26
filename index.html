@@ -148,9 +148,7 @@
 
         document.getElementById("subir_archivo").onchange = function(e) {
             let archivos = e.target.files;
-            if (!archivos |
-
-| archivos.length === 0) return;
+            if (!archivos || archivos.length === 0) return;
             
             let archivo = archivos;
             let lector = new FileReader();
@@ -218,3 +216,4 @@
     </script>
 </body>
 </html>
+
