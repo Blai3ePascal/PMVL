@@ -14,57 +14,15 @@
             overflow: hidden; 
             background: #0f172a; 
             font-family: 'Segoe UI', system-ui, sans-serif; 
-            color: white;
         }
         
-        #menu_inicio { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            background: #0f172a; 
-            z-index: 20; 
-        }
-
-        #menu_inicio h1 { 
-            margin-bottom: 40px; 
-            font-size: 2.5rem; 
-            text-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-        }
-
-      .botones-inicio { 
-            display: flex; 
-            gap: 20px; 
-        }
-
-      .btn-grande { 
-            font-size: 1.1rem; 
-            padding: 15px 30px; 
-            border-radius: 16px; 
-            cursor: pointer;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-            border: none;
-            transition: all 0.2s;
-        }
-        
-      .btn-grande:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
-        }
-
         #contenedor_pantalla { 
             position: absolute; 
             top: 0; 
             left: 0; 
             width: 100vw; 
             height: 100vh; 
-            display: none; 
+            display: flex; 
             justify-content: center; 
             align-items: center; 
         }
@@ -77,7 +35,7 @@
             transition: transform 0.2s ease-out; 
         }
 
-     .panel-flotante { 
+      .panel-flotante { 
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
@@ -85,7 +43,7 @@
             background: rgba(30, 41, 59, 0.6); 
             padding: 12px 24px; 
             border-radius: 20px; 
-            display: none; 
+            display: flex; 
             gap: 12px; 
             backdrop-filter: blur(12px); 
             -webkit-backdrop-filter: blur(12px);
@@ -96,7 +54,7 @@
             transition: all 0.4s ease; 
         }
 
-     .panel-flotante:hover { 
+      .panel-flotante:hover { 
             opacity: 1; 
             bottom: 35px;
         }
@@ -129,7 +87,7 @@
             display: none; 
         }
 
-     .v86-text { 
+      .v86-text { 
             white-space: pre; 
             font: 14px monospace; 
             line-height: 14px; 
@@ -139,59 +97,37 @@
 </head>
 <body>
 
-    <div id="menu_inicio">
-        <h1>🖥️ Mi Máquina Virtual Web</h1>
-        <div class="botones-inicio">
-            <button class="btn-grande" onclick="iniciarMaquina('gui')">🖼️ Arrancar con Interfaz Gráfica</button>
-            <button class="btn-grande" onclick="iniciarMaquina('cli')">⌨️ Arrancar en Solo Texto (CLI)</button>
-        </div>
-    </div>
-
     <div id="contenedor_pantalla">
         <div class="v86-text"></div>
         <canvas id="pantalla"></canvas>
     </div>
 
-    <div class="panel-flotante" id="controles">
+    <div class="panel-flotante">
         <button onclick="acercar()">+ Zoom</button>
         <button onclick="alejar()">- Zoom</button>
         <button onclick="captura()">📸 Captura</button>
         <button onclick="guardarEstado()">💾 Guardar</button>
         <button onclick="cargarEstado()">📂 Cargar</button>
-        <button onclick="bajarArchivo()">⬇️ Bajar</button>
+        <button onclick="bajarArchivo()">⬇️ Bajar de Linux</button>
         <label class="btn-subir">
-            ⬆️ Subir
+            ⬆️ Subir a Linux
             <input type="file" id="subir_archivo">
         </label>
         <button onclick="tecladoES()">🇪🇸 Teclado ES</button>
     </div>
 
     <script>
-        var emulator;
-
-        function iniciarMaquina(modo) {
-            document.getElementById('menu_inicio').style.display = 'none';
-            document.getElementById('contenedor_pantalla').style.display = 'flex';
-            document.getElementById('controles').style.display = 'flex';
-
-            let configuracion = {
-                wasm_path: "v86.wasm",
-                memory_size: 128 * 1024 * 1024,
-                vga_memory_size: 8 * 1024 * 1024,
-                screen_container: document.getElementById("contenedor_pantalla"),
-                bios: { url: "seabios.bin" },
-                vga_bios: { url: "vgabios.bin" },
-                cdrom: { url: "TinyCore-11.0.iso" },
-                autostart: true,
-                filesystem: {}
-            };
-
-            if (modo === 'cli') {
-                configuracion.cmdline = "text";
-            }
-
-            emulator = new V86(configuracion);
-        }
+        var emulator = new V86({
+            wasm_path: "v86.wasm",
+            memory_size: 128 * 1024 * 1024,
+            vga_memory_size: 8 * 1024 * 1024,
+            screen_container: document.getElementById("contenedor_pantalla"),
+            bios: { url: "seabios.bin" },
+            vga_bios: { url: "vgabios.bin" },
+            cdrom: { url: "TinyCore-11.0.iso" },
+            autostart: true,
+            filesystem: {}
+        });
 
         let zoom = 1;
         function acercar() { 
@@ -211,15 +147,17 @@
         }
 
         document.getElementById("subir_archivo").onchange = function(e) {
-            let archivo = e.target.files;
-            if (!archivo |
+            let archivos = e.target.files;
+            if (!archivos |
 
-| archivo.length === 0) return;
+| archivos.length === 0) return;
+            let archivo = archivos;
             let lector = new FileReader();
             lector.onload = function(evento) {
                 let bytes = new Uint8Array(evento.target.result);
                 emulator.create_file("/mnt/9p/" + archivo.name, bytes);
                 alert("Archivo subido a /mnt/9p/" + archivo.name);
+                e.target.value = '';
             };
             lector.readAsArrayBuffer(archivo);
         };
