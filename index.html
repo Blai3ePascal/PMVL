@@ -38,7 +38,7 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.8); 
         }
 
-       .v86-text { 
+      .v86-text { 
             white-space: pre; 
             font: 14px monospace; 
             line-height: 14px; 
@@ -49,7 +49,7 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
-       .panel-lateral {
+      .panel-lateral {
             position: absolute;
             top: 30px;
             right: 30px;
@@ -62,16 +62,46 @@
             border: 1px solid rgba(255,255,255,0.1);
             box-shadow: 0 15px 35px rgba(0,0,0,0.4);
             max-width: 320px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
         }
 
-       .panel-lateral h2 {
+      .panel-lateral.oculto {
+            transform: translateX(150%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+      .btn-cerrar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.2s;
+            box-shadow: none;
+        }
+
+      .btn-cerrar:hover {
+            background: rgba(239, 68, 68, 0.8);
+        }
+
+      .panel-lateral h2 {
             margin: 0 0 15px 0;
             font-size: 1.5rem;
             color: #60a5fa;
             line-height: 1.2;
+            padding-right: 20px;
         }
 
-       .etiqueta-pruebas {
+      .etiqueta-pruebas {
             background: #ef4444;
             color: white;
             padding: 6px 14px;
@@ -85,13 +115,13 @@
             box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
         }
 
-       .panel-lateral h3 {
+      .panel-lateral h3 {
             margin: 0 0 10px 0;
             font-size: 1.1rem;
             color: #f8fafc;
         }
 
-       .panel-lateral ul {
+      .panel-lateral ul {
             margin: 0;
             padding-left: 20px;
             font-size: 0.95rem;
@@ -99,11 +129,11 @@
             line-height: 1.6;
         }
 
-       .panel-lateral ul li {
+      .panel-lateral ul li {
             margin-bottom: 8px;
         }
 
-       .panel-flotante { 
+      .panel-flotante { 
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
@@ -157,7 +187,8 @@
         <canvas id="pantalla"></canvas>
     </div>
 
-    <div class="panel-lateral">
+    <div class="panel-lateral" id="panel_notas">
+        <button class="btn-cerrar" onclick="toggleNotas()">✖</button>
         <h2>Sistema KairoShell de Pascal</h2>
         <div class="etiqueta-pruebas">Sistema en Pruebas</div>
         <h3>TODO:</h3>
@@ -169,6 +200,7 @@
     </div>
 
     <div class="panel-flotante">
+        <button onclick="toggleNotas()">📝 Notas</button>
         <button onclick="acercar()">+ Zoom</button>
         <button onclick="alejar()">- Zoom</button>
         <button onclick="captura()">📸 Captura</button>
@@ -190,10 +222,14 @@
             screen_container: document.getElementById("contenedor_pantalla"),
             bios: { url: "seabios.bin" },
             vga_bios: { url: "vgabios.bin" },
-            cdrom: { url: "TinyCore-11.0.iso" },
+            cdrom: { url: "linux-cli.iso" },
             autostart: true,
             filesystem: {}
         });
+
+        function toggleNotas() {
+            document.getElementById('panel_notas').classList.toggle('oculto');
+        }
 
         let zoom = 1;
         function acercar() { 
@@ -218,7 +254,9 @@
 
         document.getElementById("subir_archivo").onchange = function(e) {
             let archivos = e.target.files;
-            if (!archivos || archivos.length === 0) return;
+            if (!archivos |
+
+| archivos.length === 0) return;
             
             let archivo = archivos;
             let lector = new FileReader();
@@ -283,4 +321,3 @@
     </script>
 </body>
 </html>
-
