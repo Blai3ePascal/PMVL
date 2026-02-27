@@ -2,11 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Mi Máquina en Web</title>
+    <title>Sistema KairoShell de Pascal</title>
     
     <script src="coi-serviceworker.js"></script>
     <script src="libv86.js"></script>
     <script src="pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         body { 
@@ -14,6 +15,7 @@
             overflow: hidden; 
             background: #0f172a; 
             font-family: 'Segoe UI', system-ui, sans-serif; 
+            color: white;
         }
         
         #contenedor_pantalla { 
@@ -25,6 +27,8 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
+            transition: transform 0.2s ease-out;
+            transform-origin: center center;
         }
 
         #pantalla { 
@@ -32,7 +36,71 @@
             max-height: 100%;
             object-fit: contain;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8); 
-            transition: transform 0.2s ease-out; 
+        }
+
+       .v86-text { 
+            white-space: pre; 
+            font: 14px monospace; 
+            line-height: 14px; 
+            color: white; 
+            background: black;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+       .panel-lateral {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 25px;
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 10;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            max-width: 320px;
+        }
+
+       .panel-lateral h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.5rem;
+            color: #60a5fa;
+            line-height: 1.2;
+        }
+
+       .etiqueta-pruebas {
+            background: #ef4444;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+        }
+
+       .panel-lateral h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            color: #f8fafc;
+        }
+
+       .panel-lateral ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.95rem;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+       .panel-lateral ul li {
+            margin-bottom: 8px;
         }
 
        .panel-flotante { 
@@ -40,23 +108,17 @@
             bottom: 30px; 
             left: 50%; 
             transform: translateX(-50%); 
-            background: rgba(30, 41, 59, 0.6); 
+            background: rgba(30, 41, 59, 0.8); 
             padding: 12px 24px; 
             border-radius: 20px; 
             display: flex; 
             gap: 12px; 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
             z-index: 10; 
             border: 1px solid rgba(255,255,255,0.1); 
             box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
-            opacity: 0.2; 
             transition: all 0.4s ease; 
-        }
-
-       .panel-flotante:hover { 
-            opacity: 1; 
-            bottom: 35px;
         }
 
         button,.btn-subir { 
@@ -86,13 +148,6 @@
         input[type="file"] { 
             display: none; 
         }
-
-       .v86-text { 
-            white-space: pre; 
-            font: 14px monospace; 
-            line-height: 14px; 
-            color: white; 
-        }
     </style>
 </head>
 <body>
@@ -102,15 +157,26 @@
         <canvas id="pantalla"></canvas>
     </div>
 
+    <div class="panel-lateral">
+        <h2>Sistema KairoShell de Pascal</h2>
+        <div class="etiqueta-pruebas">Sistema en Pruebas</div>
+        <h3>TODO:</h3>
+        <ul>
+            <li>Revisar para teclados alemanes y chino simplificado</li>
+            <li>Revisar inyección de comandos</li>
+            <li>Agregar conexión con visual studio code y vim</li>
+        </ul>
+    </div>
+
     <div class="panel-flotante">
         <button onclick="acercar()">+ Zoom</button>
         <button onclick="alejar()">- Zoom</button>
         <button onclick="captura()">📸 Captura</button>
         <button onclick="guardarEstado()">💾 Guardar</button>
         <button onclick="cargarEstado()">📂 Cargar</button>
-        <button onclick="bajarArchivo()">⬇️ Bajar de Linux</button>
+        <button onclick="bajarArchivo()">⬇️ Bajar</button>
         <label class="btn-subir">
-            ⬆️ Subir a Linux
+            ⬆️ Subir
             <input type="file" id="subir_archivo">
         </label>
         <button onclick="tecladoES()">🇪🇸 Teclado ES</button>
@@ -119,7 +185,7 @@
     <script>
         var emulator = new V86({
             wasm_path: "v86.wasm",
-            memory_size: 128 * 1024 * 1024,
+            memory_size: 512 * 1024 * 1024,
             vga_memory_size: 8 * 1024 * 1024,
             screen_container: document.getElementById("contenedor_pantalla"),
             bios: { url: "seabios.bin" },
@@ -132,23 +198,29 @@
         let zoom = 1;
         function acercar() { 
             zoom += 0.2; 
-            document.getElementById('pantalla').style.transform = `scale(${zoom})`; 
+            document.getElementById('contenedor_pantalla').style.transform = `scale(${zoom})`; 
         }
         function alejar() { 
             if(zoom > 0.4) zoom -= 0.2; 
-            document.getElementById('pantalla').style.transform = `scale(${zoom})`; 
+            document.getElementById('contenedor_pantalla').style.transform = `scale(${zoom})`; 
         }
 
         function captura() {
-            let enlace = document.createElement('a');
-            enlace.download = 'captura-linux.png';
-            enlace.href = document.getElementById('pantalla').toDataURL("image/png");
-            enlace.click();
+            html2canvas(document.getElementById("contenedor_pantalla"), {
+                backgroundColor: "#0f172a"
+            }).then(canvas => {
+                let enlace = document.createElement('a');
+                enlace.download = 'captura-kairoshell.png';
+                enlace.href = canvas.toDataURL("image/png");
+                enlace.click();
+            });
         }
 
         document.getElementById("subir_archivo").onchange = function(e) {
             let archivos = e.target.files;
-            if (!archivos || archivos.length === 0) return;
+            if (!archivos |
+
+| archivos.length === 0) return;
             
             let archivo = archivos;
             let lector = new FileReader();
@@ -178,11 +250,8 @@
         }
 
         function tecladoES() {
-            emulator.serial0_send("tce-load -wi kmaps\n");
-            setTimeout(function() {
-                emulator.serial0_send("sudo loadkmap < /usr/share/kmap/qwerty/es.kmap\n");
-                alert("Comandos enviados. El teclado de España debería estar activo.");
-            }, 5000);
+            emulator.serial0_send("sudo loadkmap < /usr/share/kmap/qwerty/es.kmap\n");
+            alert("Orden de teclado inyectada en consola.");
         }
 
         const dbPromise = new Promise((resolve) => {
@@ -216,4 +285,3 @@
     </script>
 </body>
 </html>
-
