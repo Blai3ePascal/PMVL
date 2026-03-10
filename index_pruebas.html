@@ -6,24 +6,19 @@
 
     <script src="coi-serviceworker.js"></script>
     <script src="libv86.js"></script>
-    <script src="pako.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         body {
             margin: 0;
             overflow: hidden;
             background: #0f172a;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: "Segoe UI", system-ui, sans-serif;
             color: white;
         }
 
         #contenedor_pantalla {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            inset: 0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -35,7 +30,7 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
         }
 
         .v86-text {
@@ -46,91 +41,7 @@
             background: black;
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-
-        .panel-lateral {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: rgba(30, 41, 59, 0.7);
-            padding: 25px;
-            border-radius: 24px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            z-index: 10;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-            max-width: 320px;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-        }
-
-        .panel-lateral.oculto {
-            transform: translateX(150%);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .btn-cerrar {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background 0.2s;
-            box-shadow: none;
-        }
-
-        .btn-cerrar:hover {
-            background: rgba(239, 68, 68, 0.8);
-        }
-
-        .panel-lateral h2 {
-            margin: 0 0 15px 0;
-            font-size: 1.5rem;
-            color: #60a5fa;
-            line-height: 1.2;
-            padding-right: 20px;
-        }
-
-        .etiqueta-pruebas {
-            background: #ef4444;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 20px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
-        }
-
-        .panel-lateral h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.1rem;
-            color: #f8fafc;
-        }
-
-        .panel-lateral ul {
-            margin: 0;
-            padding-left: 20px;
-            font-size: 0.95rem;
-            color: #94a3b8;
-            line-height: 1.6;
-        }
-
-        .panel-lateral ul li {
-            margin-bottom: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
         }
 
         .panel-flotante {
@@ -138,8 +49,8 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(30, 41, 59, 0.8);
-            padding: 12px 24px;
+            background: rgba(30, 41, 59, 0.85);
+            padding: 16px 24px;
             border-radius: 20px;
             display: flex;
             gap: 12px;
@@ -148,12 +59,11 @@
             z-index: 10;
             border: 1px solid rgba(255,255,255,0.1);
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            transition: all 0.4s ease;
             flex-wrap: wrap;
             justify-content: center;
         }
 
-        button, .btn-subir {
+        button {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
             border: none;
@@ -167,18 +77,81 @@
             white-space: nowrap;
         }
 
-        button:hover, .btn-subir:hover {
+        button:hover {
             background: linear-gradient(135deg, #60a5fa, #3b82f6);
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
         }
 
-        button:active, .btn-subir:active {
+        button:active {
             transform: translateY(0);
         }
 
-        input[type="file"] {
+        .modal-fondo {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
             display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-fondo.abierto {
+            display: flex;
+        }
+
+        .modal {
+            width: min(420px, calc(100vw - 32px));
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+        }
+
+        .modal h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.25rem;
+            color: #93c5fd;
+        }
+
+        .modal p {
+            margin: 0 0 14px 0;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+
+        .modal input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.06);
+            color: white;
+            outline: none;
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+
+        .modal input::placeholder {
+            color: #94a3b8;
+        }
+
+        .modal-botones {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .estado-modal {
+            margin-top: 10px;
+            color: #cbd5e1;
+            font-size: 0.92rem;
+            min-height: 1.2em;
         }
     </style>
 </head>
@@ -189,31 +162,31 @@
         <canvas id="pantalla"></canvas>
     </div>
 
-    <div class="panel-lateral" id="panel_notas">
-        <button class="btn-cerrar" onclick="toggleNotas()">✖</button>
-        <h2>Sistema KairoShell de Pascal</h2>
-        <div class="etiqueta-pruebas">Sistema en Pruebas</div>
-        <h3>TODO:</h3>
-        <ul>
-            <li>Revisar para teclados alemanes y chino simplificado</li>
-            <li>Revisar inyección de comandos</li>
-            <li>Agregar conexión con visual studio code y vim</li>
-        </ul>
-    </div>
-
     <div class="panel-flotante">
-        <button onclick="toggleNotas()">📝 Notas</button>
         <button onclick="acercar()">+ Zoom</button>
         <button onclick="alejar()">- Zoom</button>
-        <button onclick="captura()">📸 Captura</button>
-        <button onclick="guardarEstado()">💾 Guardar</button>
-        <button onclick="cargarEstado()">📂 Cargar</button>
-        <button onclick="bajarArchivo()">⬇️ Bajar</button>
-        <label class="btn-subir">
-            ⬆️ Subir
-            <input type="file" id="subir_archivo">
-        </label>
-        <button onclick="tecladoES()">🇪🇸 Teclado ES</button>
+        <button onclick="abrirModalEvidencia()">Bajar Evidencia</button>
+    </div>
+
+    <div class="modal-fondo" id="modal_evidencia" onclick="cerrarModalSiFondo(event)">
+        <div class="modal">
+            <h2>Bajar Evidencia</h2>
+            <p>Escribe el nombre exacto del archivo que está en <code>/home/estudiante</code>.</p>
+
+            <input
+                type="text"
+                id="input_archivo_evidencia"
+                placeholder="ejemplo: evidencia.txt"
+                autocomplete="off"
+            >
+
+            <div class="modal-botones">
+                <button type="button" onclick="cerrarModalEvidencia()">Cancelar</button>
+                <button type="button" onclick="bajarEvidencia()">Descargar</button>
+            </div>
+
+            <div class="estado-modal" id="estado_modal"></div>
+        </div>
     </div>
 
     <script>
@@ -238,16 +211,12 @@
 
         emulator.add_listener("download-error", function(err) {
             console.error("Error descargando archivos:", err);
-            alert("No se pudo descargar algún archivo. Revisa la consola del navegador.");
+            alert("No se pudo descargar algún archivo del emulador. Revisa la consola.");
         });
 
         emulator.add_listener("emulator-ready", function() {
             console.log("Emulador listo");
         });
-
-        function toggleNotas() {
-            document.getElementById("panel_notas").classList.toggle("oculto");
-        }
 
         let zoom = 1;
 
@@ -261,130 +230,108 @@
             document.getElementById("contenedor_pantalla").style.transform = `scale(${zoom})`;
         }
 
-        function captura() {
-            html2canvas(document.getElementById("contenedor_pantalla"), {
-                backgroundColor: "#0f172a"
-            }).then(canvas => {
-                const enlace = document.createElement("a");
-                enlace.download = "captura-kairoshell.png";
-                enlace.href = canvas.toDataURL("image/png");
-                enlace.click();
-            });
+        function abrirModalEvidencia() {
+            document.getElementById("modal_evidencia").classList.add("abierto");
+            document.getElementById("estado_modal").textContent = "";
+            const input = document.getElementById("input_archivo_evidencia");
+            input.value = "";
+            setTimeout(() => input.focus(), 50);
         }
 
-        document.getElementById("subir_archivo").onchange = async function(e) {
-            const archivo = e.target.files && e.target.files[0];
-            if (!archivo) return;
+        function cerrarModalEvidencia() {
+            document.getElementById("modal_evidencia").classList.remove("abierto");
+            document.getElementById("estado_modal").textContent = "";
+        }
 
-            try {
-                const bytes = new Uint8Array(await archivo.arrayBuffer());
-                emulator.create_file("/mnt/9p/" + archivo.name, bytes);
-                alert("Archivo subido a /mnt/9p/" + archivo.name);
-            } catch (err) {
-                console.error(err);
-                alert("No se pudo subir el archivo");
+        function cerrarModalSiFondo(event) {
+            if (event.target.id === "modal_evidencia") {
+                cerrarModalEvidencia();
+            }
+        }
+
+        function nombreSeguroArchivo(nombre) {
+            const limpio = nombre.trim().replace(/^.*[\\/]/, "");
+            if (!limpio) return "";
+            if (limpio.includes("..") || limpio.includes("/")) return "";
+            return limpio;
+        }
+
+        function escaparComillasSimples(texto) {
+            return texto.replace(/'/g, `'\\''`);
+        }
+
+        function esperar(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function intentarLeerDesde9p(nombre, intentos = 14, pausaMs = 800) {
+            for (let i = 0; i < intentos; i++) {
+                try {
+                    const datos = await emulator.read_file("/mnt/9p/" + nombre);
+                    if (datos) return datos;
+                } catch (e) {
+                }
+                await esperar(pausaMs);
+            }
+            throw new Error("No se encontró el archivo en /mnt/9p");
+        }
+
+        async function bajarEvidencia() {
+            const estado = document.getElementById("estado_modal");
+            const nombreOriginal = document.getElementById("input_archivo_evidencia").value;
+            const nombre = nombreSeguroArchivo(nombreOriginal);
+
+            if (!nombre) {
+                estado.textContent = "Introduce un nombre de archivo válido.";
+                return;
             }
 
-            e.target.value = "";
-        };
+            estado.textContent = "Preparando descarga...";
 
-        async function bajarArchivo() {
-            const nombre = prompt("Nombre del archivo en /mnt/9p/:");
-            if (!nombre) return;
+            const origen = `/home/estudiante/${nombre}`;
+            const destino = `/mnt/9p/${nombre}`;
+
+            const comando =
+                `if [ -f '${escaparComillasSimples(origen)}' ]; then ` +
+                `cp '${escaparComillasSimples(origen)}' '${escaparComillasSimples(destino)}'; ` +
+                `echo '__DESCARGA_OK__'; ` +
+                `else echo '__DESCARGA_NO_ENCONTRADO__'; fi\n`;
 
             try {
-                const datos = await emulator.read_file("/mnt/9p/" + nombre);
-                const blob = new Blob([datos]);
-                const enlace = document.createElement("a");
-                enlace.href = URL.createObjectURL(blob);
-                enlace.download = nombre;
-                enlace.click();
+                emulator.serial0_send(comando);
             } catch (e) {
                 console.error(e);
-                alert("Archivo no encontrado");
+                estado.textContent = "No se pudo enviar el comando a la máquina.";
+                return;
+            }
+
+            try {
+                const datos = await intentarLeerDesde9p(nombre);
+                const blob = new Blob([datos], { type: "application/octet-stream" });
+                const url = URL.createObjectURL(blob);
+                const enlace = document.createElement("a");
+
+                enlace.href = url;
+                enlace.download = nombre;
+                document.body.appendChild(enlace);
+                enlace.click();
+                enlace.remove();
+
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+                estado.textContent = "Descarga iniciada en el navegador.";
+                setTimeout(() => cerrarModalEvidencia(), 700);
+            } catch (e) {
+                console.error(e);
+                estado.textContent = "No se pudo bajar el archivo. Comprueba que existe en /home/estudiante y que la VM está lista para recibir el comando.";
             }
         }
 
-        function tecladoES() {
-            emulator.serial0_send("sudo loadkmap < /usr/share/kmap/qwerty/es.kmap\n");
-            alert("Orden de teclado inyectada en consola.");
-        }
-
-        const dbPromise = new Promise((resolve, reject) => {
-            const req = indexedDB.open("MaquinaDB", 1);
-
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains("estados")) {
-                    db.createObjectStore("estados");
-                }
-            };
-
-            req.onsuccess = (e) => resolve(e.target.result);
-            req.onerror = (e) => reject(e.target.error);
+        document.getElementById("input_archivo_evidencia").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                bajarEvidencia();
+            }
         });
-
-        async function guardarEstado() {
-            try {
-                const db = await dbPromise;
-
-                emulator.save_state(function(err, estadoCrudo) {
-                    if (err) {
-                        console.error(err);
-                        alert("Error al guardar");
-                        return;
-                    }
-
-                    const estadoComprimido = pako.deflate(new Uint8Array(estadoCrudo), { level: 6 });
-                    const tx = db.transaction("estados", "readwrite");
-                    tx.objectStore("estados").put(estadoComprimido, "mi_partida");
-
-                    tx.oncomplete = function() {
-                        alert("Guardado");
-                    };
-
-                    tx.onerror = function(e) {
-                        console.error(e);
-                        alert("Error al guardar en IndexedDB");
-                    };
-                });
-            } catch (err) {
-                console.error(err);
-                alert("No se pudo abrir la base de datos");
-            }
-        }
-
-        async function cargarEstado() {
-            try {
-                const db = await dbPromise;
-                const tx = db.transaction("estados", "readonly");
-                const peticion = tx.objectStore("estados").get("mi_partida");
-
-                peticion.onsuccess = async function() {
-                    if (!peticion.result) {
-                        alert("No hay datos");
-                        return;
-                    }
-
-                    try {
-                        const estadoDescomprimido = pako.inflate(peticion.result).buffer;
-                        await emulator.restore_state(estadoDescomprimido);
-                        alert("Cargado");
-                    } catch (err) {
-                        console.error(err);
-                        alert("Error al restaurar el estado");
-                    }
-                };
-
-                peticion.onerror = function(e) {
-                    console.error(e);
-                    alert("Error al leer el guardado");
-                };
-            } catch (err) {
-                console.error(err);
-                alert("No se pudo abrir la base de datos");
-            }
-        }
     </script>
 </body>
 </html>
