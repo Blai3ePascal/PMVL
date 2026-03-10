@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Sistema KairoShell de Pascal</title>
+
+    <script src="coi-serviceworker.js"></script>
+    <script src="libv86.js"></script>
+    <script src="pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0f172a;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: white;
+        }
+
+        #contenedor_pantalla {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s ease-out;
+            transform-origin: center center;
+        }
+
+        #pantalla {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .v86-text {
+            white-space: pre;
+            font: 14px monospace;
+            line-height: 14px;
+            color: white;
+            background: black;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .panel-lateral {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 25px;
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 10;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            max-width: 320px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+        }
+
+        .panel-lateral.oculto {
+            transform: translateX(150%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .btn-cerrar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.2s;
+            box-shadow: none;
+        }
+
+        .btn-cerrar:hover {
+            background: rgba(239, 68, 68, 0.8);
+        }
+
+        .panel-lateral h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.5rem;
+            color: #60a5fa;
+            line-height: 1.2;
+            padding-right: 20px;
+        }
+
+        .etiqueta-pruebas {
+            background: #ef4444;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .panel-lateral h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            color: #f8fafc;
+        }
+
+        .panel-lateral ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.95rem;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        .panel-lateral ul li {
+            margin-bottom: 8px;
+        }
+
+        .panel-flotante {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.8);
+            padding: 12px 24px;
+            border-radius: 20px;
+            display: flex;
+            gap: 12px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 10;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transition: all 0.4s ease;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button, .btn-subir {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        button:hover, .btn-subir:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        button:active, .btn-subir:active {
+            transform: translateY(0);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="contenedor_pantalla">
+        <div class="v86-text"></div>
+        <canvas id="pantalla"></canvas>
+    </div>
+
+    <div class="panel-lateral" id="panel_notas">
+        <button class="btn-cerrar" onclick="toggleNotas()">✖</button>
+        <h2>Sistema KairoShell de Pascal</h2>
+        <div class="etiqueta-pruebas">Sistema en Pruebas</div>
+        <h3>TODO:</h3>
+        <ul>
+            <li>Revisar para teclados alemanes y chino simplificado</li>
+            <li>Revisar inyección de comandos</li>
+            <li>Agregar conexión con visual studio code y vim</li>
+        </ul>
+    </div>
+
+    <div class="panel-flotante">
+        <button onclick="toggleNotas()">📝 Notas</button>
+        <button onclick="acercar()">+ Zoom</button>
+        <button onclick="alejar()">- Zoom</button>
+        <button onclick="captura()">📸 Captura</button>
+        <button onclick="guardarEstado()">💾 Guardar</button>
+        <button onclick="cargarEstado()">📂 Cargar</button>
+        <button onclick="bajarArchivo()">⬇️ Bajar</button>
+        <label class="btn-subir">
+            ⬆️ Subir
+            <input type="file" id="subir_archivo">
+        </label>
+        <button onclick="tecladoES()">🇪🇸 Teclado ES</button>
+    </div>
+
+    <script>
+        const emulator = new V86({
+            wasm_path: "v86.wasm",
+            memory_size: 512 * 1024 * 1024,
+            vga_memory_size: 8 * 1024 * 1024,
+            screen_container: document.getElementById("contenedor_pantalla"),
+
+            bios: { url: "seabios.bin" },
+            vga_bios: { url: "vgabios.bin" },
+
+            hda: {
+                url: "final.img.zst",
+                size: 2147483648,
+                async: true
+            },
+
+            boot_order: 0x132,
+            autostart: true,
+            filesystem: {}
+        });
+
+        emulator.add_listener("download-error", function(err) {
+            console.error("Error descargando archivos:", err);
+            alert("No se pudo descargar algún archivo. Revisa la consola del navegador.");
+        });
+
+        emulator.add_listener("emulator-ready", function() {
+            console.log("Emulador listo");
+        });
+
+        function toggleNotas() {
+            document.getElementById("panel_notas").classList.toggle("oculto");
+        }
+
+        let zoom = 1;
+
+        function acercar() {
+            zoom += 0.2;
+            document.getElementById("contenedor_pantalla").style.transform = `scale(${zoom})`;
+        }
+
+        function alejar() {
+            if (zoom > 0.4) zoom -= 0.2;
+            document.getElementById("contenedor_pantalla").style.transform = `scale(${zoom})`;
+        }
+
+        function captura() {
+            html2canvas(document.getElementById("contenedor_pantalla"), {
+                backgroundColor: "#0f172a"
+            }).then(canvas => {
+                const enlace = document.createElement("a");
+                enlace.download = "captura-kairoshell.png";
+                enlace.href = canvas.toDataURL("image/png");
+                enlace.click();
+            });
+        }
+
+        document.getElementById("subir_archivo").onchange = async function(e) {
+            const archivo = e.target.files && e.target.files[0];
+            if (!archivo) return;
+
+            try {
+                const bytes = new Uint8Array(await archivo.arrayBuffer());
+                emulator.create_file("/mnt/9p/" + archivo.name, bytes);
+                alert("Archivo subido a /mnt/9p/" + archivo.name);
+            } catch (err) {
+                console.error(err);
+                alert("No se pudo subir el archivo");
+            }
+
+            e.target.value = "";
+        };
+
+        async function bajarArchivo() {
+            const nombre = prompt("Nombre del archivo en /mnt/9p/:");
+            if (!nombre) return;
+
+            try {
+                const datos = await emulator.read_file("/mnt/9p/" + nombre);
+                const blob = new Blob([datos]);
+                const enlace = document.createElement("a");
+                enlace.href = URL.createObjectURL(blob);
+                enlace.download = nombre;
+                enlace.click();
+            } catch (e) {
+                console.error(e);
+                alert("Archivo no encontrado");
+            }
+        }
+
+        function tecladoES() {
+            emulator.serial0_send("sudo loadkmap < /usr/share/kmap/qwerty/es.kmap\n");
+            alert("Orden de teclado inyectada en consola.");
+        }
+
+        const dbPromise = new Promise((resolve, reject) => {
+            const req = indexedDB.open("MaquinaDB", 1);
+
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains("estados")) {
+                    db.createObjectStore("estados");
+                }
+            };
+
+            req.onsuccess = (e) => resolve(e.target.result);
+            req.onerror = (e) => reject(e.target.error);
+        });
+
+        async function guardarEstado() {
+            try {
+                const db = await dbPromise;
+
+                emulator.save_state(function(err, estadoCrudo) {
+                    if (err) {
+                        console.error(err);
+                        alert("Error al guardar");
+                        return;
+                    }
+
+                    const estadoComprimido = pako.deflate(new Uint8Array(estadoCrudo), { level: 6 });
+                    const tx = db.transaction("estados", "readwrite");
+                    tx.objectStore("estados").put(estadoComprimido, "mi_partida");
+
+                    tx.oncomplete = function() {
+                        alert("Guardado");
+                    };
+
+                    tx.onerror = function(e) {
+                        console.error(e);
+                        alert("Error al guardar en IndexedDB");
+                    };
+                });
+            } catch (err) {
+                console.error(err);
+                alert("No se pudo abrir la base de datos");
+            }
+        }
+
+        async function cargarEstado() {
+            try {
+                const db = await dbPromise;
+                const tx = db.transaction("estados", "readonly");
+                const peticion = tx.objectStore("estados").get("mi_partida");
+
+                peticion.onsuccess = async function() {
+                    if (!peticion.result) {
+                        alert("No hay datos");
+                        return;
+                    }
+
+                    try {
+                        const estadoDescomprimido = pako.inflate(peticion.result).buffer;
+                        await emulator.restore_state(estadoDescomprimido);
+                        alert("Cargado");
+                    } catch (err) {
+                        console.error(err);
+                        alert("Error al restaurar el estado");
+                    }
+                };
+
+                peticion.onerror = function(e) {
+                    console.error(e);
+                    alert("Error al leer el guardado");
+                };
+            } catch (err) {
+                console.error(err);
+                alert("No se pudo abrir la base de datos");
+            }
+        }
+    </script>
+</body>
+</html>
