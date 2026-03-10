@@ -47,25 +47,21 @@
         .barra-contenedor {
             position: fixed;
             left: 50%;
-            bottom: 16px;
+            bottom: 14px;
             transform: translateX(-50%);
             z-index: 20;
             transition: transform 0.25s ease;
+            width: min(92vw, 700px);
         }
 
         .barra-contenedor.plegada {
-            transform: translateX(-50%) translateY(calc(100% - 48px));
+            transform: translateX(-50%) translateY(calc(100% - 44px));
         }
 
         .barra-toggle {
             display: flex;
             justify-content: center;
             margin-bottom: 8px;
-        }
-
-        .barra-toggle button {
-            border-radius: 999px;
-            padding: 10px 16px;
         }
 
         .panel-flotante {
@@ -80,7 +76,6 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             flex-wrap: wrap;
             justify-content: center;
-            min-width: 320px;
         }
 
         button {
@@ -172,6 +167,7 @@
             color: #cbd5e1;
             font-size: 0.92rem;
             min-height: 1.2em;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -184,7 +180,7 @@
 
     <div class="barra-contenedor plegada" id="barra_controles">
         <div class="barra-toggle">
-            <button type="button" onclick="toggleBarra()">Controles ▲</button>
+            <button type="button" id="btn_toggle_barra" onclick="toggleBarra()">Controles ▲</button>
         </div>
 
         <div class="panel-flotante">
@@ -216,20 +212,20 @@
     </div>
 
     <script>
+        const DISK_URL = "final-2046.img.zst";
+        const DISK_SIZE = 2145386496;
+
         const emulator = new V86({
             wasm_path: "v86.wasm",
             memory_size: 512 * 1024 * 1024,
             vga_memory_size: 8 * 1024 * 1024,
             screen_container: document.getElementById("contenedor_pantalla"),
-
             bios: { url: "seabios.bin" },
             vga_bios: { url: "vgabios.bin" },
-
             hda: {
-                url: "final-2046.img.zst",
-                size: 2145386496
+                url: DISK_URL,
+                size: DISK_SIZE
             },
-
             boot_order: 0x132,
             autostart: true,
             filesystem: {}
@@ -258,7 +254,7 @@
 
         function toggleBarra() {
             const barra = document.getElementById("barra_controles");
-            const boton = barra.querySelector(".barra-toggle button");
+            const boton = document.getElementById("btn_toggle_barra");
             barra.classList.toggle("plegada");
             boton.textContent = barra.classList.contains("plegada") ? "Controles ▲" : "Controles ▼";
         }
@@ -285,7 +281,7 @@
         function nombreSeguroArchivo(nombre) {
             const limpio = nombre.trim().replace(/^.*[\\/]/, "");
             if (!limpio) return "";
-            if (limpio.includes("..") || limpio.includes("/")) return "";
+            if (limpio.includes("..") || limpio.includes("/") || limpio.includes("\\")) return "";
             return limpio;
         }
 
@@ -297,18 +293,41 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        async function intentarLeerDesde9p(nombre, intentos = 24, pausaMs = 1000) {
+        async function intentarLeerCompartido(nombre, intentos = 30, pausaMs = 1000) {
+            const rutas = [
+                `/${nombre}`,
+                `/tmp/${nombre}`,
+                `/shared/${nombre}`
+            ];
+
             for (let i = 0; i < intentos; i++) {
-                try {
-                    const datos = await emulator.read_file("/mnt/9p/" + nombre);
-                    if (datos && datos.length >= 0) {
-                        return datos;
+                for (const ruta of rutas) {
+                    try {
+                        const datos = await emulator.read_file(ruta);
+                        if (datos && datos.length >= 0) {
+                            return datos;
+                        }
+                    } catch (e) {
                     }
-                } catch (e) {
                 }
                 await esperar(pausaMs);
             }
-            throw new Error("No se encontró el archivo en /mnt/9p");
+
+            throw new Error("No se encontró el archivo en el filesystem compartido");
+        }
+
+        async function descargarBlob(datos, nombre) {
+            const blob = new Blob([datos], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const enlace = document.createElement("a");
+
+            enlace.href = url;
+            enlace.download = nombre;
+            document.body.appendChild(enlace);
+            enlace.click();
+            enlace.remove();
+
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
         }
 
         async function bajarEvidencia() {
@@ -321,18 +340,18 @@
                 return;
             }
 
-            estado.textContent = "Montando carpeta compartida y preparando descarga...";
+            estado.textContent = "Preparando descarga...";
 
             const origen = `/home/estudiante/${nombre}`;
-            const destino = `/mnt/9p/${nombre}`;
+            const puntoMontaje = "/tmp/hostshare";
+            const destinoGuest = `${puntoMontaje}/${nombre}`;
 
             const comando =
-                "mkdir -p /mnt/9p; " +
-                "(mountpoint -q /mnt/9p || mount -t 9p -o trans=virtio,version=9p2000.L host9p /mnt/9p || mount -t 9p host9p /mnt/9p) >/dev/null 2>&1; " +
+                `mkdir -p '${puntoMontaje}' 2>/dev/null; ` +
+                `(mountpoint -q '${puntoMontaje}' || mount -t 9p -o trans=virtio,version=9p2000.L host9p '${puntoMontaje}' || mount -t 9p host9p '${puntoMontaje}') >/dev/null 2>&1; ` +
                 `if [ -f '${escaparComillasSimples(origen)}' ]; then ` +
-                `cp '${escaparComillasSimples(origen)}' '${escaparComillasSimples(destino)}' && sync; ` +
-                "echo '__DESCARGA_OK__'; " +
-                "else echo '__DESCARGA_NO_ENCONTRADO__'; fi\n";
+                `cp '${escaparComillasSimples(origen)}' '${escaparComillasSimples(destinoGuest)}' >/dev/null 2>&1 && sync; ` +
+                `fi\n`;
 
             try {
                 emulator.serial0_send(comando);
@@ -342,25 +361,16 @@
                 return;
             }
 
+            estado.textContent = "Intentando copiar el archivo desde la máquina virtual...";
+
             try {
-                const datos = await intentarLeerDesde9p(nombre, 24, 1000);
-                const blob = new Blob([datos], { type: "application/octet-stream" });
-                const url = URL.createObjectURL(blob);
-                const enlace = document.createElement("a");
-
-                enlace.href = url;
-                enlace.download = nombre;
-                document.body.appendChild(enlace);
-                enlace.click();
-                enlace.remove();
-
-                setTimeout(() => URL.revokeObjectURL(url), 2000);
-
+                const datos = await intentarLeerCompartido(nombre, 30, 1000);
+                await descargarBlob(datos, nombre);
                 estado.textContent = "Descarga iniciada en el navegador.";
                 setTimeout(() => cerrarModalEvidencia(), 900);
             } catch (e) {
                 console.error(e);
-                estado.textContent = "No se pudo bajar el archivo. Comprueba que existe en /home/estudiante y que la VM acepta el montaje 9p.";
+                estado.textContent = "No se pudo bajar el archivo. El archivo puede no existir, la VM puede no tener 9p operativo o puede no aceptar comandos por serial.";
             }
         }
 
