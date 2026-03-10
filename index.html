@@ -3,180 +3,202 @@
 <head>
     <meta charset="utf-8">
     <title>Sistema KairoShell de Pascal</title>
-    
+
     <script src="coi-serviceworker.js"></script>
     <script src="libv86.js"></script>
-    <script src="pako.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background: #0f172a; 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0f172a;
+            font-family: "Segoe UI", system-ui, sans-serif;
             color: white;
         }
-        
-        #contenedor_pantalla { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
+
+        #contenedor_pantalla {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             transition: transform 0.2s ease-out;
             transform-origin: center center;
         }
 
-        #pantalla { 
+        #pantalla {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8); 
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
         }
 
-      .v86-text { 
-            white-space: pre; 
-            font: 14px monospace; 
-            line-height: 14px; 
-            color: white; 
+        .v86-text {
+            white-space: pre;
+            font: 14px monospace;
+            line-height: 14px;
+            color: white;
             background: black;
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
         }
 
-      .panel-lateral {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: rgba(30, 41, 59, 0.7);
-            padding: 25px;
-            border-radius: 24px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            z-index: 10;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-            max-width: 320px;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+        .barra-contenedor {
+            position: fixed;
+            left: 50%;
+            bottom: 14px;
+            transform: translateX(-50%);
+            z-index: 20;
+            transition: transform 0.25s ease;
+            width: min(94vw, 860px);
         }
 
-      .panel-lateral.oculto {
-            transform: translateX(150%);
-            opacity: 0;
-            pointer-events: none;
+        .barra-contenedor.plegada {
+            transform: translateX(-50%) translateY(calc(100% - 44px));
         }
 
-      .btn-cerrar {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
+        .barra-toggle {
             display: flex;
             justify-content: center;
-            align-items: center;
-            transition: background 0.2s;
-            box-shadow: none;
-        }
-
-      .btn-cerrar:hover {
-            background: rgba(239, 68, 68, 0.8);
-        }
-
-      .panel-lateral h2 {
-            margin: 0 0 15px 0;
-            font-size: 1.5rem;
-            color: #60a5fa;
-            line-height: 1.2;
-            padding-right: 20px;
-        }
-
-      .etiqueta-pruebas {
-            background: #ef4444;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 20px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
-        }
-
-      .panel-lateral h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.1rem;
-            color: #f8fafc;
-        }
-
-      .panel-lateral ul {
-            margin: 0;
-            padding-left: 20px;
-            font-size: 0.95rem;
-            color: #94a3b8;
-            line-height: 1.6;
-        }
-
-      .panel-lateral ul li {
             margin-bottom: 8px;
         }
 
-      .panel-flotante { 
-            position: absolute; 
-            bottom: 30px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background: rgba(30, 41, 59, 0.8); 
-            padding: 12px 24px; 
-            border-radius: 20px; 
-            display: flex; 
-            gap: 12px; 
-            backdrop-filter: blur(16px); 
+        .panel-flotante {
+            background: rgba(30, 41, 59, 0.88);
+            padding: 16px 20px;
+            border-radius: 20px;
+            display: flex;
+            gap: 12px;
+            backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            z-index: 10; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
-            transition: all 0.4s ease; 
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
-        button,.btn-subir { 
-            background: linear-gradient(135deg, #3b82f6, #2563eb); 
-            color: white; 
-            border: none; 
-            padding: 10px 18px; 
-            border-radius: 12px; 
-            font-size: 14px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.2s; 
+        button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             white-space: nowrap;
         }
 
-        button:hover,.btn-subir:hover { 
-            background: linear-gradient(135deg, #60a5fa, #3b82f6); 
-            transform: translateY(-2px); 
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4); 
+        button:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
         }
 
-        button:active,.btn-subir:active { 
-            transform: translateY(0); 
+        button:active {
+            transform: translateY(0);
         }
 
-        input[type="file"] { 
-            display: none; 
+        .modal-fondo {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-fondo.abierto {
+            display: flex;
+        }
+
+        .modal {
+            width: min(560px, calc(100vw - 32px));
+            background: rgba(15, 23, 42, 0.97);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+        }
+
+        .modal h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.25rem;
+            color: #93c5fd;
+        }
+
+        .modal p {
+            margin: 0 0 14px 0;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+
+        .modal input, .modal textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.06);
+            color: white;
+            outline: none;
+            font-size: 14px;
+            margin-bottom: 14px;
+            font-family: inherit;
+        }
+
+        .modal textarea {
+            min-height: 140px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .modal input::placeholder,
+        .modal textarea::placeholder {
+            color: #94a3b8;
+        }
+
+        .modal-botones {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .estado-modal {
+            margin-top: 10px;
+            color: #cbd5e1;
+            font-size: 0.92rem;
+            min-height: 1.2em;
+            line-height: 1.45;
+        }
+
+        .bloque-manual {
+            display: none;
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .bloque-manual.visible {
+            display: block;
+        }
+
+        .bloque-manual h3 {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: #bfdbfe;
+        }
+
+        .bloque-manual p {
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -187,137 +209,350 @@
         <canvas id="pantalla"></canvas>
     </div>
 
-    <div class="panel-lateral" id="panel_notas">
-        <button class="btn-cerrar" onclick="toggleNotas()">✖</button>
-        <h2>Sistema KairoShell de Pascal</h2>
-        <div class="etiqueta-pruebas">Sistema en Pruebas</div>
-        <h3>TODO:</h3>
-        <ul>
-            <li>Revisar para teclados alemanes y chino simplificado</li>
-            <li>Revisar inyección de comandos</li>
-            <li>Agregar conexión con visual studio code y vim</li>
-        </ul>
+    <div class="barra-contenedor plegada" id="barra_controles">
+        <div class="barra-toggle">
+            <button type="button" id="btn_toggle_barra" onclick="toggleBarra()">Controles ▲</button>
+        </div>
+
+        <div class="panel-flotante">
+            <button onclick="acercar()">+ Zoom</button>
+            <button onclick="alejar()">- Zoom</button>
+            <button onclick="capturaMaquina()">📸 Captura</button>
+            <button onclick="abrirModalEvidencia()">Bajar Evidencia</button>
+        </div>
     </div>
 
-    <div class="panel-flotante">
-        <button onclick="toggleNotas()">📝 Notas</button>
-        <button onclick="acercar()">+ Zoom</button>
-        <button onclick="alejar()">- Zoom</button>
-        <button onclick="captura()">📸 Captura</button>
-        <button onclick="guardarEstado()">💾 Guardar</button>
-        <button onclick="cargarEstado()">📂 Cargar</button>
-        <button onclick="bajarArchivo()">⬇️ Bajar</button>
-        <label class="btn-subir">
-            ⬆️ Subir
-            <input type="file" id="subir_archivo">
-        </label>
-        <button onclick="tecladoES()">🇪🇸 Teclado ES</button>
+    <div class="modal-fondo" id="modal_evidencia" onclick="cerrarModalSiFondo(event)">
+        <div class="modal">
+            <h2>Bajar Evidencia</h2>
+            <p>Escribe el nombre exacto del archivo dentro de <code>/home/estudiante</code>.</p>
+
+            <input
+                type="text"
+                id="input_archivo_evidencia"
+                placeholder="ejemplo: evidencia.txt"
+                autocomplete="off"
+            >
+
+            <div class="modal-botones">
+                <button type="button" onclick="cerrarModalEvidencia()">Cancelar</button>
+                <button type="button" onclick="copiarComandoManual()">Copiar comando</button>
+                <button type="button" onclick="reintentarDescargaManual()">Reintentar</button>
+                <button type="button" onclick="bajarEvidencia()">Descargar</button>
+            </div>
+
+            <div class="estado-modal" id="estado_modal"></div>
+
+            <div class="bloque-manual" id="bloque_manual">
+                <h3>Si no baja solo</h3>
+                <p>Ejecuta este comando dentro de la máquina virtual y luego pulsa <strong>Reintentar</strong>.</p>
+                <textarea id="comando_manual" readonly></textarea>
+            </div>
+        </div>
     </div>
 
     <script>
-        var emulator = new V86({
+        const DISK_URL = "final-2046.img.zst";
+        const DISK_SIZE = 2145386496;
+
+        const emulator = new V86({
             wasm_path: "v86.wasm",
             memory_size: 512 * 1024 * 1024,
             vga_memory_size: 8 * 1024 * 1024,
             screen_container: document.getElementById("contenedor_pantalla"),
             bios: { url: "seabios.bin" },
             vga_bios: { url: "vgabios.bin" },
-            cdrom: { url: "TinyCore-11.0.iso" },
+            hda: {
+                url: DISK_URL,
+                size: DISK_SIZE
+            },
+            boot_order: 0x132,
             autostart: true,
             filesystem: {}
         });
 
-        function toggleNotas() {
-            document.getElementById('panel_notas').classList.toggle('oculto');
-        }
+        emulator.add_listener("download-error", function(err) {
+            console.error("Error descargando archivos:", err);
+            alert("No se pudo descargar algún archivo del emulador. Revisa la consola.");
+        });
+
+        emulator.add_listener("emulator-ready", function() {
+            console.log("Emulador listo");
+        });
 
         let zoom = 1;
-        function acercar() { 
-            zoom += 0.2; 
-            document.getElementById('contenedor_pantalla').style.transform = `scale(${zoom})`; 
-        }
-        function alejar() { 
-            if(zoom > 0.4) zoom -= 0.2; 
-            document.getElementById('contenedor_pantalla').style.transform = `scale(${zoom})`; 
+        let contextoDescarga = null;
+
+        function acercar() {
+            zoom += 0.2;
+            document.getElementById("contenedor_pantalla").style.transform = `scale(${zoom})`;
         }
 
-        function captura() {
-            html2canvas(document.getElementById("contenedor_pantalla"), {
-                backgroundColor: "#0f172a"
-            }).then(canvas => {
-                let enlace = document.createElement('a');
-                enlace.download = 'captura-kairoshell.png';
-                enlace.href = canvas.toDataURL("image/png");
-                enlace.click();
-            });
+        function alejar() {
+            if (zoom > 0.4) zoom -= 0.2;
+            document.getElementById("contenedor_pantalla").style.transform = `scale(${zoom})`;
         }
 
-        document.getElementById("subir_archivo").onchange = function(e) {
-            let archivos = e.target.files;
-            if (!archivos || archivos.length === 0) return;
-            
-            let archivo = archivos;
-            let lector = new FileReader();
-            
-            lector.onload = function(evento) {
-                let bytes = new Uint8Array(evento.target.result);
-                emulator.create_file("/mnt/9p/" + archivo.name, bytes);
-                alert("Archivo subido a /mnt/9p/" + archivo.name);
-                e.target.value = '';
-            };
-            lector.readAsArrayBuffer(archivo);
-        };
+        function toggleBarra() {
+            const barra = document.getElementById("barra_controles");
+            const boton = document.getElementById("btn_toggle_barra");
+            barra.classList.toggle("plegada");
+            boton.textContent = barra.classList.contains("plegada") ? "Controles ▲" : "Controles ▼";
+        }
 
-        async function bajarArchivo() {
-            let nombre = prompt("Nombre del archivo en /mnt/9p/:");
-            if (!nombre) return;
-            try {
-                let datos = await emulator.read_file("/mnt/9p/" + nombre);
-                let blob = new Blob([datos]);
-                let enlace = document.createElement('a');
-                enlace.href = URL.createObjectURL(blob);
-                enlace.download = nombre;
-                enlace.click();
-            } catch(e) {
-                alert("Archivo no encontrado");
+        function abrirModalEvidencia() {
+            document.getElementById("modal_evidencia").classList.add("abierto");
+            document.getElementById("estado_modal").textContent = "";
+            document.getElementById("bloque_manual").classList.remove("visible");
+            document.getElementById("comando_manual").value = "";
+            contextoDescarga = null;
+
+            const input = document.getElementById("input_archivo_evidencia");
+            input.value = "";
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function cerrarModalEvidencia() {
+            document.getElementById("modal_evidencia").classList.remove("abierto");
+            document.getElementById("estado_modal").textContent = "";
+            document.getElementById("bloque_manual").classList.remove("visible");
+            document.getElementById("comando_manual").value = "";
+            contextoDescarga = null;
+        }
+
+        function cerrarModalSiFondo(event) {
+            if (event.target.id === "modal_evidencia") {
+                cerrarModalEvidencia();
             }
         }
 
-        function tecladoES() {
-            emulator.serial0_send("sudo loadkmap < /usr/share/kmap/qwerty/es.kmap\n");
-            alert("Orden de teclado inyectada en consola.");
+        function nombreSeguroArchivo(nombre) {
+            const limpio = nombre.trim().replace(/^.*[\\/]/, "");
+            if (!limpio) return "";
+            if (limpio.includes("..") || limpio.includes("/") || limpio.includes("\\")) return "";
+            return limpio;
         }
 
-        const dbPromise = new Promise((resolve) => {
-            let req = indexedDB.open("MaquinaDB", 1);
-            req.onupgradeneeded = (e) => e.target.result.createObjectStore("estados");
-            req.onsuccess = (e) => resolve(e.target.result);
-        });
+        function escaparComillasSimples(texto) {
+            return texto.replace(/'/g, `'\\''`);
+        }
 
-        async function guardarEstado() {
-            let db = await dbPromise;
-            emulator.save_state(async function(err, estadoCrudo) {
-                if (err) return alert("Error al guardar");
-                let estadoComprimido = pako.deflate(new Uint8Array(estadoCrudo), { level: 6 });
-                let tx = db.transaction("estados", "readwrite");
-                tx.objectStore("estados").put(estadoComprimido, "mi_partida");
-                alert("Guardado");
+        function esperar(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function nombreCaptura() {
+            const ahora = new Date();
+            const p = n => String(n).padStart(2, "0");
+            return `captura-kairoshell-${ahora.getFullYear()}-${p(ahora.getMonth()+1)}-${p(ahora.getDate())}_${p(ahora.getHours())}-${p(ahora.getMinutes())}-${p(ahora.getSeconds())}.png`;
+        }
+
+        function descargarBlob(blob, nombre) {
+            const url = URL.createObjectURL(blob);
+            const enlace = document.createElement("a");
+            enlace.href = url;
+            enlace.download = nombre;
+            document.body.appendChild(enlace);
+            enlace.click();
+            enlace.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+
+        function renderTextoATextura(textoPlano) {
+            const lineas = textoPlano.replace(/\t/g, "    ").split("\n");
+            const padding = 16;
+            const fontSize = 14;
+            const lineHeight = 18;
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            ctx.font = `${fontSize}px monospace`;
+
+            const anchoTexto = Math.max(
+                320,
+                ...lineas.map(linea => Math.ceil(ctx.measureText(linea).width))
+            );
+
+            canvas.width = anchoTexto + padding * 2;
+            canvas.height = Math.max(120, lineas.length * lineHeight + padding * 2);
+
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = `${fontSize}px monospace`;
+            ctx.fillStyle = "#ffffff";
+            ctx.textBaseline = "top";
+
+            lineas.forEach((linea, i) => {
+                ctx.fillText(linea, padding, padding + i * lineHeight);
             });
+
+            return canvas;
         }
 
-        async function cargarEstado() {
-            let db = await dbPromise;
-            let tx = db.transaction("estados", "readonly");
-            let peticion = tx.objectStore("estados").get("mi_partida");
-            peticion.onsuccess = async function() {
-                if (!peticion.result) return alert("No hay datos");
-                let estadoDescomprimido = pako.inflate(peticion.result).buffer;
-                await emulator.restore_state(estadoDescomprimido);
-                alert("Cargado");
+        function capturaMaquina() {
+            const canvasVM = document.getElementById("pantalla");
+            const textoVM = document.querySelector(".v86-text");
+            const nombre = nombreCaptura();
+
+            if (canvasVM && canvasVM.width > 0 && canvasVM.height > 0) {
+                canvasVM.toBlob(function(blob) {
+                    if (!blob) {
+                        alert("No se pudo generar la captura.");
+                        return;
+                    }
+                    descargarBlob(blob, nombre);
+                }, "image/png");
+                return;
+            }
+
+            if (textoVM && textoVM.textContent.trim()) {
+                const canvasTexto = renderTextoATextura(textoVM.textContent);
+                canvasTexto.toBlob(function(blob) {
+                    if (!blob) {
+                        alert("No se pudo generar la captura.");
+                        return;
+                    }
+                    descargarBlob(blob, nombre);
+                }, "image/png");
+                return;
+            }
+
+            alert("Todavía no hay imagen disponible para capturar.");
+        }
+
+        function construirContextoDescarga(nombre) {
+            const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            const nombreCompartido = `evidencia-${id}-${nombre}`;
+            const origen = `/home/estudiante/${nombre}`;
+            const puntoMontaje = "/tmp/hostshare";
+            const destinoGuest = `${puntoMontaje}/${nombreCompartido}`;
+
+            const comando =
+                `mkdir -p '${puntoMontaje}' 2>/dev/null; ` +
+                `modprobe 9pnet_virtio 2>/dev/null; modprobe 9p 2>/dev/null; modprobe 9pnet 2>/dev/null; ` +
+                `(mountpoint -q '${puntoMontaje}' || ` +
+                `mount -t 9p -o trans=virtio,version=9p2000.L,msize=262144 host9p '${puntoMontaje}' || ` +
+                `mount -t 9p -o trans=virtio host9p '${puntoMontaje}' || ` +
+                `mount -t 9p host9p '${puntoMontaje}') >/dev/null 2>&1; ` +
+                `if [ -f '${escaparComillasSimples(origen)}' ]; then ` +
+                `cp '${escaparComillasSimples(origen)}' '${escaparComillasSimples(destinoGuest)}' >/dev/null 2>&1 && sync; ` +
+                `fi`;
+
+            return {
+                nombreOriginal: nombre,
+                nombreCompartido,
+                rutaCompartida: `/${nombreCompartido}`,
+                comando
             };
         }
+
+        async function intentarLeerCompartido(rutaCompartida, intentos = 18, pausaMs = 1000) {
+            for (let i = 0; i < intentos; i++) {
+                try {
+                    const datos = await emulator.read_file(rutaCompartida);
+                    if (datos && datos.length >= 0) {
+                        return datos;
+                    }
+                } catch (e) {
+                }
+                await esperar(pausaMs);
+            }
+
+            throw new Error("No se encontró el archivo en el filesystem compartido");
+        }
+
+        function mostrarModoManual(contexto) {
+            document.getElementById("bloque_manual").classList.add("visible");
+            document.getElementById("comando_manual").value = contexto.comando;
+        }
+
+        async function lanzarDescargaDesdeCompartido(contexto, intentos = 18, pausaMs = 1000) {
+            const datos = await intentarLeerCompartido(contexto.rutaCompartida, intentos, pausaMs);
+            const blob = new Blob([datos], { type: "application/octet-stream" });
+            descargarBlob(blob, contexto.nombreOriginal);
+        }
+
+        async function bajarEvidencia() {
+            const estado = document.getElementById("estado_modal");
+            const nombreOriginal = document.getElementById("input_archivo_evidencia").value;
+            const nombre = nombreSeguroArchivo(nombreOriginal);
+
+            if (!nombre) {
+                estado.textContent = "Introduce un nombre de archivo válido.";
+                return;
+            }
+
+            const contexto = construirContextoDescarga(nombre);
+            contextoDescarga = contexto;
+
+            document.getElementById("bloque_manual").classList.remove("visible");
+            document.getElementById("comando_manual").value = "";
+
+            estado.textContent = "Intentando bajarlo automáticamente...";
+
+            try {
+                emulator.serial0_send(contexto.comando + "\n");
+            } catch (e) {
+                console.error(e);
+            }
+
+            try {
+                await lanzarDescargaDesdeCompartido(contexto, 12, 900);
+                estado.textContent = "Descarga iniciada en el navegador.";
+                setTimeout(() => cerrarModalEvidencia(), 900);
+            } catch (e) {
+                console.error(e);
+                mostrarModoManual(contexto);
+                estado.textContent = "No he podido copiarlo automáticamente. Ejecuta el comando dentro de la VM y luego pulsa Reintentar.";
+            }
+        }
+
+        async function reintentarDescargaManual() {
+            const estado = document.getElementById("estado_modal");
+
+            if (!contextoDescarga) {
+                estado.textContent = "Primero indica el archivo y pulsa Descargar.";
+                return;
+            }
+
+            estado.textContent = "Comprobando si el archivo ya está listo...";
+
+            try {
+                await lanzarDescargaDesdeCompartido(contextoDescarga, 20, 1000);
+                estado.textContent = "Descarga iniciada en el navegador.";
+                setTimeout(() => cerrarModalEvidencia(), 900);
+            } catch (e) {
+                console.error(e);
+                estado.textContent = "Todavía no aparece en la carpeta compartida. Ejecuta el comando dentro de la VM y vuelve a pulsar Reintentar.";
+            }
+        }
+
+        async function copiarComandoManual() {
+            const estado = document.getElementById("estado_modal");
+            const area = document.getElementById("comando_manual");
+            const texto = area.value.trim();
+
+            if (!texto) {
+                estado.textContent = "Primero pulsa Descargar para generar el comando.";
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(texto);
+                estado.textContent = "Comando copiado al portapapeles.";
+            } catch (e) {
+                area.focus();
+                area.select();
+                estado.textContent = "No pude copiarlo automáticamente. Selecciónalo y cópialo manualmente.";
+            }
+        }
+
+        document.getElementById("input_archivo_evidencia").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                bajarEvidencia();
+            }
+        });
     </script>
 </body>
 </html>
-
-
